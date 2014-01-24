@@ -1,0 +1,12 @@
+@main("This is a realtime clock") { <h1>Server Sent Event clock</h1>
+
+<h1 id="content"></h1>
+
+<script type="text/javascript">
+    var evtSource = new EventSource("@routes.Application.realtimeClock()");
+    evtSource.onmessage = function(e) {
+        var elem = document.getElementById("content")
+        elem.innerHTML = "Time: " + e.data;
+    }
+</script>
+}
