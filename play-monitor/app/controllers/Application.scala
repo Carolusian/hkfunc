@@ -16,13 +16,29 @@ object Application extends Controller {
     Ok(views.html.index("Your new application is ready."))
   }
   
+  def upload() = Action {
+    Ok(views.html.upload());
+  }
+  
+  def uploadFile() = Action(parse.multipartFormData) { request =>
+    request.body.file("file").map { file =>
+      import java.io.File
+      val filename = file.filename
+      file.ref.moveTo(new File(s"D:/$filename"), true)
+      Redirect(routes.Application.upload)
+    }.getOrElse {
+      Redirect(routes.Application.upload)
+    }
+  }
+  
   lazy val cpuUsageStream: Enumerator[String] = Enumerator.generateM {
     val sigar = new Sigar()
     val cpu = sigar.getCpuPerc()
     Promise.timeout(
       Some(1.0 - cpu.getIdle() toString),
-      1 second)
+      100 millisecond)
   }
+  
   def monitor = Action {
     Ok.chunked(cpuUsageStream &> EventSource()).as("text/event-stream")
   }
