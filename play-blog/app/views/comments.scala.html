@@ -1,0 +1,19 @@
+@(commentForm: Form[BlogComment], comments:List[BlogComment], post:BlogPost)
+
+@import helper._
+
+@main(post.title) {
+    <div>@post.title</div>
+    <div>@post.body</div>
+    <hr />
+    @form(routes.Blog.saveComment(post.id.get)) {
+        @inputText(commentForm("comment"), '_label -> "Comment on this post:")
+        <input type="hidden" name="blog_id" value="@post.id.get">
+        <input type="submit">
+    }
+    <ul>
+    @for(comment <- comments) {
+        <li>@comment.comment</li>
+    }
+    </ul>
+}

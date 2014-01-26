@@ -1,0 +1,26 @@
+@(postForm: Form[BlogPost], posts: List[BlogPost] )(implicit flash: play.api.mvc.Flash)
+@import helper._
+@main("Welcome to Play") {
+    
+@flash.get("error").map { error =>
+    <div style="color:red;">
+        @error
+    </div>
+}
+@form(action=routes.Blog.post()) {
+    <fieldset>
+        @inputText(postForm("title"), '_label -> "title")
+        @inputText(postForm("body"), '_label -> "body")
+    </fieldset>
+    <input type="submit">
+}
+<ul>
+    @for(p <- posts) {
+        <li>
+            <a href="@routes.Blog.comments(p.id.getOrElse(0))">@p.title</a>
+            <br />
+            @p.body
+        </li>
+    }
+</ul>
+}
