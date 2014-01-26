@@ -9,6 +9,10 @@ import play.api.mvc._
 import play.api.Logger
 import models._
 import play.api.db.slick.Config.driver.simple._
+import play.api.libs.iteratee.{Concurrent, Enumeratee}
+import play.api.libs.json._
+import play.api.libs.EventSource
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 object Blog extends Controller {
   val postForm = Form(
@@ -26,6 +30,8 @@ object Blog extends Controller {
       "comment" -> nonEmptyText()      
     )(BlogComment.apply)(BlogComment.unapply)
   )
+  
+  val (commentOut, commentChannel) = Concurrent.broadcast[JsValue]
   
   def index = DBAction { implicit rs =>
     val posts = BlogPosts.list
@@ -49,14 +55,28 @@ object Blog extends Controller {
     Ok(views.html.comments(commentForm, comments, post))
   }
   
+  implicit val commentFormatter = Json.format[BlogComment]
+  
   def saveComment(postId:Long) = DBAction {implicit rs =>
     commentForm.bindFromRequest.fold(
       formWithErrors => Redirect(routes.Blog.comments(postId)),
       comment => {
         BlogComments.insert(comment)
+        commentChannel.push(Json.toJson(comment))
         Redirect(routes.Blog.comments(postId))
       }
     )
+  }
+  
+  def commentFeed(postId:Long) = Action { request =>
+    def filter = Enumeratee.filter[JsValue] {
+      json:JsValue => (json \ "blogId").as[Long] == postId
+    }
+    Ok.chunked(
+        commentOut through 
+        filter through
+        EventSource()).as("text/event-stream")
+    
   }
 
 }
